@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NOVLI Dashboard — 13 April 2026</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg:       #0f1117;
+    --surface:  #1a1d27;
+    --surface2: #22263a;
+    --border:   #2e3348;
+    --text:     #e8eaf0;
+    --muted:    #7c82a0;
+    --blue:     #4f8ef7;
+    --green:    #3ecf8e;
+    --orange:   #f97316;
+    --gray:     #6b7280;
+    --red:      #f43f5e;
+    --yellow:   #fbbf24;
+    --purple:   #a78bfa;
+    --radius:   14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: linear-gradient(135deg, #1a1d27 0%, #161926 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 24px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .header-left h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--blue);
+    letter-spacing: -0.3px;
+  }
+  .header-left p {
+    color: var(--muted);
+    font-size: 13px;
+    margin-top: 3px;
+  }
+  .badge {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* ── Layout ── */
+  .main { padding: 28px 32px; max-width: 1400px; margin: 0 auto; }
+
+  /* ── Section title ── */
+  .section-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+    margin-top: 32px;
+  }
+
+  /* ── KPI Cards ── */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+  .card.blue::before  { background: var(--blue); }
+  .card.green::before { background: var(--green); }
+  .card.orange::before{ background: var(--orange); }
+  .card.red::before   { background: var(--red); }
+  .card.purple::before{ background: var(--purple); }
+  .card-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .card-value {
+    font-size: 36px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -1px;
+  }
+  .card.blue   .card-value { color: var(--blue); }
+  .card.green  .card-value { color: var(--green); }
+  .card.orange .card-value { color: var(--orange); }
+  .card.red    .card-value { color: var(--red); }
+  .card.purple .card-value { color: var(--purple); }
+  .card-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  /* ── Chart panels ── */
+  .chart-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+  }
+  .chart-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px 24px;
+  }
+  .panel-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .panel-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 18px;
+  }
+  .panel canvas { width: 100% !important; }
+
+  /* ── Table ── */
+  .table-wrap { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  th {
+    text-align: left;
+    padding: 10px 14px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 11px 14px;
+    border-bottom: 1px solid #1e2235;
+    color: var(--text);
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+  .pill {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .pill.open      { background: #1a3a5c; color: var(--blue); }
+  .pill.needclose { background: #3a2510; color: var(--orange); }
+  .pill.improved  { background: #0d3326; color: var(--green); }
+  .pill.nofix     { background: #3a1020; color: var(--red); }
+
+  /* ── Payload mini-cards ── */
+  .stat-row {
+    display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 20px;
+  }
+  .stat-chip {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 20px;
+    min-width: 140px;
+    flex: 1;
+  }
+  .stat-chip .val { font-size: 28px; font-weight: 800; line-height: 1; }
+  .stat-chip .lbl { font-size: 11px; color: var(--muted); margin-top: 5px; text-transform: uppercase; letter-spacing: 0.7px; }
+  .green-val { color: var(--green); }
+  .red-val   { color: var(--red); }
+  .blue-val  { color: var(--blue); }
+
+  /* ── Footer ── */
+  .footer {
+    text-align: center;
+    padding: 28px;
+    color: var(--muted);
+    font-size: 12px;
+    border-top: 1px solid var(--border);
+    margin-top: 40px;
+  }
+
+  @media (max-width: 768px) {
+    .main { padding: 16px; }
+    .chart-grid, .chart-grid-3 { grid-template-columns: 1fr; }
+    .header { padding: 18px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>📡 NOVLI Dashboard</h1>
+    <p>Monitoring Ticket Sumbagut — Regional Overview</p>
+  </div>
+  <span class="badge">📅 13 April 2026</span>
+</div>
+
+<div class="main">
+
+  <!-- KPI Cards -->
+  <div class="section-title">Ringkasan Saat Ini</div>
+  <div class="cards">
+    <div class="card blue">
+      <div class="card-label">Total Open</div>
+      <div class="card-value">110</div>
+      <div class="card-sub">Tiket aktif</div>
+    </div>
+    <div class="card orange">
+      <div class="card-label">Need Close</div>
+      <div class="card-value">78</div>
+      <div class="card-sub">Perlu ditindaklanjuti</div>
+    </div>
+    <div class="card red">
+      <div class="card-label">Prioritas P1</div>
+      <div class="card-value">113</div>
+      <div class="card-sub">High priority</div>
+    </div>
+    <div class="card purple">
+      <div class="card-label">Prioritas P2</div>
+      <div class="card-value">76</div>
+      <div class="card-sub">Medium priority</div>
+    </div>
+    <div class="card green">
+      <div class="card-label">Total Aktif</div>
+      <div class="card-value">188</div>
+      <div class="card-sub">Open + NeedClose</div>
+    </div>
+  </div>
+
+  <!-- 7-Day Trend -->
+  <div class="section-title">Trend 7 Hari Terakhir</div>
+  <div class="chart-grid">
+    <div class="panel">
+      <div class="panel-title">Pergerakan Tiket Harian</div>
+      <div class="panel-sub">Open · Closed · Cleared · ReOpen</div>
+      <canvas id="trendChart" height="110"></canvas>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Komposisi Status</div>
+      <div class="panel-sub">Total selama 7 hari</div>
+      <canvas id="donutChart" height="200"></canvas>
+    </div>
+  </div>
+
+  <!-- NOP Breakdown -->
+  <div class="section-title">Status per NOP</div>
+  <div class="chart-grid-3">
+    <div class="panel">
+      <div class="panel-title">Open vs NeedClose per NOP</div>
+      <div class="panel-sub">Jumlah tiket aktif tiap regional</div>
+      <canvas id="nopChart" height="220"></canvas>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Aging Distribution per NOP</div>
+      <div class="panel-sub">Berapa lama tiket sudah open</div>
+      <canvas id="agingChart" height="220"></canvas>
+    </div>
+  </div>
+
+  <!-- Payload Improvement -->
+  <div class="section-title">Payload Improvement — Tiket Cleared 7 Hari Terakhir</div>
+  <div class="stat-row">
+    <div class="stat-chip">
+      <div class="val green-val">0</div>
+      <div class="lbl">✅ Improve</div>
+    </div>
+    <div class="stat-chip">
+      <div class="val red-val">60</div>
+      <div class="lbl">❌ No Improve</div>
+    </div>
+    <div class="stat-chip">
+      <div class="val blue-val">0%</div>
+      <div class="lbl">📈 Improve Rate</div>
+    </div>
+    <div class="stat-chip">
+      <div class="val" style="color:var(--muted)">60</div>
+      <div class="lbl">Total Cleared</div>
+    </div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="panel">
+      <div class="panel-title">Util FEGE % — Sebelum vs Sesudah Clear</div>
+      <div class="panel-sub">🟢 Turun = improve &nbsp;·&nbsp; 🔴 Naik/sama = no improve &nbsp;·&nbsp; Top 30 site</div>
+      <canvas id="payloadChart" height="380"></canvas>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Distribusi Hasil Clear</div>
+      <div class="panel-sub">Persentase tiket yang util-nya membaik setelah di-clear</div>
+      <canvas id="payloadDonut" height="200"></canvas>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:20px">
+    <div class="panel-title" style="margin-bottom:16px">Detail Payload per Tiket Cleared</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Site ID</th>
+            <th>NOP</th>
+            <th>Tgl Open</th>
+            <th>Tgl Clear</th>
+            <th>Util % (Open)</th>
+            <th>Util % (Clear)</th>
+            <th>Delta</th>
+            <th>Max Eth (Open)</th>
+            <th>Max Eth (Clear)</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="payloadTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- NOP Table -->
+  <div class="section-title">Detail per NOP</div>
+  <div class="panel">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>NOP</th>
+            <th>Open</th>
+            <th>Need Close</th>
+            <th>Total Aktif</th>
+            <th>0–3 Hari</th>
+            <th>4–7 Hari</th>
+            <th>8–14 Hari</th>
+            <th>&gt;14 Hari</th>
+          </tr>
+        </thead>
+        <tbody id="nopTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  Generated by NOVLI Bot · 2026-04-13 · Data diambil dari database SQA_SUMBAGUT
+</div>
+
+<script>
+// ── Raw data ──────────────────────────────────────────────────────────────────
+const TREND_LABELS   = ["07 Apr", "08 Apr", "09 Apr", "10 Apr", "11 Apr", "12 Apr", "13 Apr"];
+const TREND_OPENED   = [19, 16, 6, 18, 0, 0, 64];
+const TREND_CLOSED   = [0, 0, 6, 0, 0, 0, 0];
+const TREND_CLEARED  = [0, 0, 40, 38, 0, 0, 8];
+const TREND_REOPENED = [0, 0, 0, 0, 0, 0, 0];
+
+const NOP_LABELS    = ["ACEH", "BINJAI", "MEDAN", "PADANG SIDEMPUAN", "PEMATANG SIANTAR", "RANTAU PRAPAT"];
+const NOP_OPEN      = [21, 16, 104, 22, 9, 16];
+const NOP_NEEDCLOSE = [11, 9, 38, 12, 4, 4];
+
+const AGING_NOPS    = ["ACEH", "BINJAI", "MEDAN", "PADANG SIDEMPUAN", "PEMATANG SIANTAR", "RANTAU PRAPAT"];
+const AGING_0_3     = [8, 12, 40, 9, 6, 7];
+const AGING_4_7     = [13, 3, 45, 12, 1, 7];
+const AGING_8_14    = [0, 1, 19, 1, 2, 2];
+const AGING_14PLUS  = [0, 0, 0, 0, 0, 0];
+
+const NOP_SUMMARY   = [{"nop": "ACEH", "total_open": 21, "total_needclose": 11}, {"nop": "BINJAI", "total_open": 16, "total_needclose": 9}, {"nop": "MEDAN", "total_open": 104, "total_needclose": 38}, {"nop": "PADANG SIDEMPUAN", "total_open": 22, "total_needclose": 12}, {"nop": "PEMATANG SIANTAR", "total_open": 9, "total_needclose": 4}, {"nop": "RANTAU PRAPAT", "total_open": 16, "total_needclose": 4}];
+const AGING_DATA    = [{"nop": "ACEH", "bracket_0_3": 8, "bracket_4_7": 13, "bracket_8_14": 0, "bracket_14_plus": 0}, {"nop": "BINJAI", "bracket_0_3": 12, "bracket_4_7": 3, "bracket_8_14": 1, "bracket_14_plus": 0}, {"nop": "MEDAN", "bracket_0_3": 40, "bracket_4_7": 45, "bracket_8_14": 19, "bracket_14_plus": 0}, {"nop": "PADANG SIDEMPUAN", "bracket_0_3": 9, "bracket_4_7": 12, "bracket_8_14": 1, "bracket_14_plus": 0}, {"nop": "PEMATANG SIANTAR", "bracket_0_3": 6, "bracket_4_7": 1, "bracket_8_14": 2, "bracket_14_plus": 0}, {"nop": "RANTAU PRAPAT", "bracket_0_3": 7, "bracket_4_7": 7, "bracket_8_14": 2, "bracket_14_plus": 0}];
+
+const PAYLOAD_DATA  = [{"ticket_id": "MDX09720260327", "site_id": "MDX097", "nop": "MEDAN", "open_date": "2026-03-27", "clear_date": "2026-04-09", "util_open": 0.49, "util_clear": null, "eth_open": 486.67, "eth_clear": null, "improved": false, "delta": 0}, {"ticket_id": "MDX12820260327", "site_id": "MDX128", "nop": "MEDAN", "open_date": "2026-03-27", "clear_date": "2026-04-09", "util_open": 0.21, "util_clear": null, "eth_open": 212.02, "eth_clear": null, "improved": false, "delta": 0}, {"ticket_id": "MDN62620260327", "site_id": "MDN626", "nop": "MEDAN", "open_date": "2026-03-27", "clear_date": "2026-04-09", "util_open": 0.29, "util_clear": null, "eth_open": 294.35, "eth_clear": null, "improved": false, "delta": 0}, {"ticket_id": "MDN19120260327", "site_id": "MDN191", "nop": "MEDAN", "open_date": "2026-03-27", "clear_date": "2026-04-09", "util_open": 0.39, "util_clear": null, "eth_open": 393.49, "eth_clear": null, "improved": false, "delta": 0}, {"ticket_id": "MDX08620260327", "site_id": "MDX086", "nop": "MEDAN", "open_date": "2026-03-27", "clear_date": "2026-04-09", "util_open": 0.29, "util_clear": null, "eth_open": 287.93, "eth_clear": null, "improved": false, "delta": 0}, {"ticket_id": "LBP24720260327", "site_id": "LBP247", "nop": "MEDAN", "open_date": "2026-03-27", "clear_date": "2026-04-09", "util_open": 0.41, "util_clear": null, "eth_open": 411.94, "eth_clear": null, "improved": false, "delta": 0}, {"ticket_id": "TUK93420260327", "site_id": "TUK934", "nop": "PADANG SIDEMPUAN", "open_date": "2026-03-27", "clear_date": "2026-04-09", "util_open": 0.25, "util_clear": null, "eth_open": 201.09, "eth_clear": null, "improved": false, "delta": 0}, {"ticket_id": "PSP51120260327", "site_id": "PSP511", "nop": "PADANG SIDEMPUAN", "open_date": "2026-03-27", "clear_date": "2026-04-09", "util_open": 0.28, "util_clear": null, "eth_open": 279.06, "eth_clear": null, "improved": false, "delta": 0}, {"ticket_id": "MBO01320260327", "site_id": "MBO013", "nop": "ACEH", "open_date": "2026-03-27", "clear_date": "2026-04-09", "util_open": 0.33, "util_clear": null, "eth_open": 196.04, "eth_clear": null, "improved": false, "delta": 0}, {"ticket_id": "SGI13120260327", "site_id": "SGI131", "nop": "ACEH", "open_date": "2026-03-27", "clear_date": "2026-04-09", "util_open": 0.4, "util_clear": null, "eth_open": 402.48, "eth_clear": null, "improved": false, "delta": 0}, {"ticket_id": "SGI13220260327", "site_id": "SGI132", "nop": "ACEH", "open_date": "2026-03-27", "clear_date": "2026-04-09", "util_open": 0.38, "util_clear": null, "eth_open": 384.58, "eth_clear": null, "improved": false, "delta": 0}, {"ticket_id": "SGI24320260327", "site_id": "SGI243", "nop": "ACEH", "open_date": "2026-03-27", "clear_date": "2026-04-09", "util_open": 0.42, "util_clear": null, "eth_open": 421.17, "eth_clear": null, "improved": false, "delta": 0}, {"ticket_id": "TKN73820260327", "site_id": "TKN738", "nop": "ACEH", "open_date": "2026-03-27", "clear_date": "2026-04-09", "util_open": 0.53, "util_clear": null, "eth_open": 210.03, "eth_clear": null, "improved": false, "delta": 0}, {"ticket_id": "SBG64520260327", "site_id": "SBG645", "nop": "PADANG SIDEMPUAN", "open_date": "2026-03-27", "clear_date": "2026-04-09", "util_open": 0.15, "util_clear": null, "eth_open": 145.56, "eth_clear": null, "improved": false, "delta": 0}, {"ticket_id": "LBP13620260327", "site_id": "LBP136", "nop": "PEMATANG SIANTAR", "open_date": "2026-03-27", "clear_date": "2026-04-09", "util_open": 0.47, "util_clear": null, "eth_open": 379.23, "eth_clear": null, "improved": false, "delta": 0}, {"ticket_id": "LBP12420260327", "site_id": "LBP124", "nop": "MEDAN", "open_date": "2026-03-27", "clear_date": "2026-04-09", "util_open": 0.54, "util_clear": null, "eth_open": 323.76, "eth_clear": null, "improved": false, "delta": 0}, {"ticket_id": "MDN28720260327", "site_id": "MDN287", "nop": "MEDAN", "open_date": "2026-03-27", "clear_date": "2026-04-09", "util_open": 0.27, "util_clear": null, "eth_open": 269.97, "eth_clear": null, "improved": false, "delta": 0}, {"ticket_id": "MDN04920260327", "site_id": "MDN049", "nop": "MEDAN", "open_date": "2026-03-27", "clear_date": "2026-04-09", "util_open": 0.4, "util_clear": null, "eth_open": 396.52, "eth_clear": null, "improved": false, "delta": 0}, {"ticket_id": "PSP97720260327", "site_id": "PSP977", "nop": "PADANG SIDEMPUAN", "open_date": "2026-03-27", "clear_date": "2026-04-09", "util_open": 0.21, "util_clear": null, "eth_open": 211.82, "eth_clear": null, "improved": false, "delta": 0}, {"ticket_id": "LBP62820260330", "site_id": "LBP628", "nop": "MEDAN", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.5, "util_clear": 6.55, "eth_open": 201.36, "eth_clear": 26.21, "improved": false, "delta": -6.05}, {"ticket_id": "RAP48120260330", "site_id": "RAP481", "nop": "RANTAU PRAPAT", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.1, "util_clear": 9.79, "eth_open": 102.92, "eth_clear": 97.87, "improved": false, "delta": -9.69}, {"ticket_id": "GST33220260330", "site_id": "GST332", "nop": "PADANG SIDEMPUAN", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.19, "util_clear": 19.11, "eth_open": 192.1, "eth_clear": 191.09, "improved": false, "delta": -18.92}, {"ticket_id": "RAP06120260330", "site_id": "RAP061", "nop": "RANTAU PRAPAT", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.24, "util_clear": 20.71, "eth_open": 235.61, "eth_clear": 207.05, "improved": false, "delta": -20.47}, {"ticket_id": "STB11720260330", "site_id": "STB117", "nop": "BINJAI", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.27, "util_clear": 25.84, "eth_open": 267.44, "eth_clear": 258.4, "improved": false, "delta": -25.57}, {"ticket_id": "RAP95120260330", "site_id": "RAP951", "nop": "RANTAU PRAPAT", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.29, "util_clear": 27.57, "eth_open": 291.1, "eth_clear": 275.7, "improved": false, "delta": -27.28}, {"ticket_id": "AKN02620260330", "site_id": "AKN026", "nop": "RANTAU PRAPAT", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.25, "util_clear": 29.65, "eth_open": 101.31, "eth_clear": 118.6, "improved": false, "delta": -29.4}, {"ticket_id": "LBP64420260330", "site_id": "LBP644", "nop": "MEDAN", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.46, "util_clear": 29.9, "eth_open": 455.85, "eth_clear": 299.03, "improved": false, "delta": -29.44}, {"ticket_id": "MDN61520260330", "site_id": "MDN615", "nop": "MEDAN", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.26, "util_clear": 30.73, "eth_open": 255.88, "eth_clear": 307.29, "improved": false, "delta": -30.47}, {"ticket_id": "RAP12020260330", "site_id": "RAP120", "nop": "RANTAU PRAPAT", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.31, "util_clear": 30.86, "eth_open": 186.09, "eth_clear": 185.18, "improved": false, "delta": -30.55}, {"ticket_id": "MDX12120260330", "site_id": "MDX121", "nop": "MEDAN", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.34, "util_clear": 31.79, "eth_open": 340.66, "eth_clear": 317.85, "improved": false, "delta": -31.45}, {"ticket_id": "LBP26220260330", "site_id": "LBP262", "nop": "MEDAN", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.38, "util_clear": 34.85, "eth_open": 382.8, "eth_clear": 348.52, "improved": false, "delta": -34.47}, {"ticket_id": "MDN13320260330", "site_id": "MDN133", "nop": "MEDAN", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.33, "util_clear": 34.99, "eth_open": 334.2, "eth_clear": 349.86, "improved": false, "delta": -34.66}, {"ticket_id": "MDX27920260330", "site_id": "MDX279", "nop": "MEDAN", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.44, "util_clear": 35.39, "eth_open": 435.46, "eth_clear": 353.91, "improved": false, "delta": -34.95}, {"ticket_id": "MDN08720260330", "site_id": "MDN087", "nop": "MEDAN", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.36, "util_clear": 37.16, "eth_open": 359.0, "eth_clear": 371.59, "improved": false, "delta": -36.8}, {"ticket_id": "MDN36720260330", "site_id": "MDN367", "nop": "MEDAN", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.42, "util_clear": 37.51, "eth_open": 417.97, "eth_clear": 375.13, "improved": false, "delta": -37.09}, {"ticket_id": "MDN25820260330", "site_id": "MDN258", "nop": "MEDAN", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.4, "util_clear": 39.36, "eth_open": 403.42, "eth_clear": 393.65, "improved": false, "delta": -38.96}, {"ticket_id": "LBP21220260330", "site_id": "LBP212", "nop": "MEDAN", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.31, "util_clear": 39.56, "eth_open": 311.81, "eth_clear": 395.63, "improved": false, "delta": -39.25}, {"ticket_id": "STB30320260330", "site_id": "STB303", "nop": "MEDAN", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.33, "util_clear": 40.27, "eth_open": 325.63, "eth_clear": 402.71, "improved": false, "delta": -39.94}, {"ticket_id": "LBP14420260330", "site_id": "LBP144", "nop": "MEDAN", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.41, "util_clear": 40.67, "eth_open": 412.73, "eth_clear": 406.73, "improved": false, "delta": -40.26}, {"ticket_id": "BJI07120260330", "site_id": "BJI071", "nop": "BINJAI", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.44, "util_clear": 40.74, "eth_open": 441.43, "eth_clear": 407.39, "improved": false, "delta": -40.3}, {"ticket_id": "LBP09220260327", "site_id": "LBP092", "nop": "MEDAN", "open_date": "2026-03-27", "clear_date": "2026-04-09", "util_open": 0.46, "util_clear": 40.9, "eth_open": 455.87, "eth_clear": 409.01, "improved": false, "delta": -40.44}, {"ticket_id": "PSP61020260330", "site_id": "PSP610", "nop": "RANTAU PRAPAT", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.41, "util_clear": 41.2, "eth_open": 163.74, "eth_clear": 164.79, "improved": false, "delta": -40.79}, {"ticket_id": "MDX13020260330", "site_id": "MDX130", "nop": "MEDAN", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.43, "util_clear": 41.74, "eth_open": 428.59, "eth_clear": 417.45, "improved": false, "delta": -41.31}, {"ticket_id": "MDN37020260330", "site_id": "MDN370", "nop": "MEDAN", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.42, "util_clear": 41.75, "eth_open": 416.65, "eth_clear": 417.5, "improved": false, "delta": -41.33}, {"ticket_id": "MDN18420260330", "site_id": "MDN184", "nop": "MEDAN", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.7, "util_clear": 43.15, "eth_open": 697.69, "eth_clear": 431.52, "improved": false, "delta": -42.45}, {"ticket_id": "MDN04320260330", "site_id": "MDN043", "nop": "MEDAN", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.44, "util_clear": 43.52, "eth_open": 435.68, "eth_clear": 435.21, "improved": false, "delta": -43.08}, {"ticket_id": "STB04420260330", "site_id": "STB044", "nop": "MEDAN", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.45, "util_clear": 44.89, "eth_open": 179.45, "eth_clear": 179.57, "improved": false, "delta": -44.44}, {"ticket_id": "MDN10920260330", "site_id": "MDN109", "nop": "MEDAN", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.39, "util_clear": 45.16, "eth_open": 393.71, "eth_clear": 451.57, "improved": false, "delta": -44.77}, {"ticket_id": "STB10720260330", "site_id": "STB107", "nop": "BINJAI", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.35, "util_clear": 45.68, "eth_open": 347.69, "eth_clear": 456.77, "improved": false, "delta": -45.33}, {"ticket_id": "LBP06720260330", "site_id": "LBP067", "nop": "MEDAN", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.41, "util_clear": 46.49, "eth_open": 411.32, "eth_clear": 464.92, "improved": false, "delta": -46.08}, {"ticket_id": "LBP00820260327", "site_id": "LBP008", "nop": "MEDAN", "open_date": "2026-03-27", "clear_date": "2026-04-09", "util_open": 0.61, "util_clear": 48.25, "eth_open": 612.6, "eth_clear": 482.5, "improved": false, "delta": -47.64}, {"ticket_id": "MDN22720260330", "site_id": "MDN227", "nop": "MEDAN", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.45, "util_clear": 48.83, "eth_open": 450.21, "eth_clear": 488.33, "improved": false, "delta": -48.38}, {"ticket_id": "MDX11720260330", "site_id": "MDX117", "nop": "MEDAN", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.38, "util_clear": 50.82, "eth_open": 376.21, "eth_clear": 508.21, "improved": false, "delta": -50.44}, {"ticket_id": "LBP07120260327", "site_id": "LBP071", "nop": "PEMATANG SIANTAR", "open_date": "2026-03-27", "clear_date": "2026-04-09", "util_open": 0.52, "util_clear": 52.16, "eth_open": 209.47, "eth_clear": 208.64, "improved": false, "delta": -51.64}, {"ticket_id": "MDN34320260330", "site_id": "MDN343", "nop": "MEDAN", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.5, "util_clear": 52.25, "eth_open": 495.59, "eth_clear": 522.48, "improved": false, "delta": -51.75}, {"ticket_id": "MDN04520260330", "site_id": "MDN045", "nop": "MEDAN", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.53, "util_clear": 52.37, "eth_open": 530.77, "eth_clear": 523.7, "improved": false, "delta": -51.84}, {"ticket_id": "MDX28420260330", "site_id": "MDX284", "nop": "MEDAN", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.47, "util_clear": 54.04, "eth_open": 473.01, "eth_clear": 540.39, "improved": false, "delta": -53.57}, {"ticket_id": "MDN52020260330", "site_id": "MDN520", "nop": "MEDAN", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.4, "util_clear": 55.3, "eth_open": 395.65, "eth_clear": 553.04, "improved": false, "delta": -54.9}, {"ticket_id": "MDN18820260330", "site_id": "MDN188", "nop": "MEDAN", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.55, "util_clear": 55.71, "eth_open": 553.09, "eth_clear": 557.08, "improved": false, "delta": -55.16}, {"ticket_id": "MDX28720260330", "site_id": "MDX287", "nop": "MEDAN", "open_date": "2026-03-30", "clear_date": "2026-04-10", "util_open": 0.49, "util_clear": 57.38, "eth_open": 486.02, "eth_clear": 573.77, "improved": false, "delta": -56.89}];
+const PAY_LABELS    = ["MDX097", "MDX128", "MDN626", "MDN191", "MDX086", "LBP247", "TUK934", "PSP511", "MBO013", "SGI131", "SGI132", "SGI243", "TKN738", "SBG645", "LBP136", "LBP124", "MDN287", "MDN049", "PSP977", "LBP628", "RAP481", "GST332", "RAP061", "STB117", "RAP951", "AKN026", "LBP644", "MDN615", "RAP120", "MDX121"];
+const PAY_BEFORE    = [0.49, 0.21, 0.29, 0.39, 0.29, 0.41, 0.25, 0.28, 0.33, 0.4, 0.38, 0.42, 0.53, 0.15, 0.47, 0.54, 0.27, 0.4, 0.21, 0.5, 0.1, 0.19, 0.24, 0.27, 0.29, 0.25, 0.46, 0.26, 0.31, 0.34];
+const PAY_AFTER     = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6.55, 9.79, 19.11, 20.71, 25.84, 27.57, 29.65, 29.9, 30.73, 30.86, 31.79];
+const PAY_COLORS    = ["rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)"];
+const TOTAL_IMPROVED     = 0;
+const TOTAL_NOT_IMPROVED = 60;
+
+// ── Chart defaults ────────────────────────────────────────────────────────────
+Chart.defaults.color = '#7c82a0';
+Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
+Chart.defaults.font.size = 12;
+
+const gridColor = '#2e3348';
+
+// ── 1. Trend Line Chart ───────────────────────────────────────────────────────
+new Chart(document.getElementById('trendChart'), {
+  type: 'line',
+  data: {
+    labels: TREND_LABELS,
+    datasets: [
+      {
+        label: 'Open',
+        data: TREND_OPENED,
+        borderColor: '#4f8ef7',
+        backgroundColor: 'rgba(79,142,247,0.08)',
+        borderWidth: 2.5,
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        fill: true,
+        tension: 0.4,
+      },
+      {
+        label: 'Closed',
+        data: TREND_CLOSED,
+        borderColor: '#3ecf8e',
+        backgroundColor: 'rgba(62,207,142,0.06)',
+        borderWidth: 2.5,
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        fill: true,
+        tension: 0.4,
+      },
+      {
+        label: 'Cleared',
+        data: TREND_CLEARED,
+        borderColor: '#6b7280',
+        backgroundColor: 'rgba(107,114,128,0.06)',
+        borderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        fill: true,
+        tension: 0.4,
+      },
+      {
+        label: 'ReOpen',
+        data: TREND_REOPENED,
+        borderColor: '#f97316',
+        backgroundColor: 'rgba(249,115,22,0.06)',
+        borderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        fill: true,
+        tension: 0.4,
+      },
+    ]
+  },
+  options: {
+    responsive: true,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: {
+        position: 'top',
+        labels: { boxWidth: 12, padding: 16, usePointStyle: true },
+      },
+      tooltip: {
+        backgroundColor: '#1a1d27',
+        borderColor: '#2e3348',
+        borderWidth: 1,
+        padding: 12,
+        callbacks: {
+          label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y} tiket`,
+        },
+      },
+    },
+    scales: {
+      x: { grid: { color: gridColor }, ticks: { color: '#7c82a0' } },
+      y: {
+        grid: { color: gridColor },
+        ticks: { color: '#7c82a0', stepSize: 1 },
+        beginAtZero: true,
+      },
+    },
+  }
+});
+
+// ── 2. Donut Chart ─────────────────────────────────────────────────────────────
+const sumOf = arr => arr.reduce((a, b) => a + b, 0);
+new Chart(document.getElementById('donutChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Open', 'Closed', 'Cleared', 'ReOpen'],
+    datasets: [{
+      data: [sumOf(TREND_OPENED), sumOf(TREND_CLOSED), sumOf(TREND_CLEARED), sumOf(TREND_REOPENED)],
+      backgroundColor: ['#4f8ef7','#3ecf8e','#6b7280','#f97316'],
+      borderColor: '#1a1d27',
+      borderWidth: 3,
+      hoverOffset: 8,
+    }]
+  },
+  options: {
+    responsive: true,
+    cutout: '68%',
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: { padding: 14, boxWidth: 12, usePointStyle: true },
+      },
+      tooltip: {
+        backgroundColor: '#1a1d27',
+        borderColor: '#2e3348',
+        borderWidth: 1,
+        callbacks: {
+          label: ctx => ` ${ctx.label}: ${ctx.parsed} tiket`,
+        },
+      },
+    },
+  }
+});
+
+// ── 3. NOP Grouped Bar Chart ───────────────────────────────────────────────────
+new Chart(document.getElementById('nopChart'), {
+  type: 'bar',
+  data: {
+    labels: NOP_LABELS,
+    datasets: [
+      {
+        label: 'Open',
+        data: NOP_OPEN,
+        backgroundColor: 'rgba(79,142,247,0.85)',
+        borderRadius: 6,
+        borderSkipped: false,
+      },
+      {
+        label: 'NeedClose',
+        data: NOP_NEEDCLOSE,
+        backgroundColor: 'rgba(249,115,22,0.85)',
+        borderRadius: 6,
+        borderSkipped: false,
+      },
+    ]
+  },
+  options: {
+    responsive: true,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { position: 'top', labels: { boxWidth: 12, usePointStyle: true } },
+      tooltip: { backgroundColor: '#1a1d27', borderColor: '#2e3348', borderWidth: 1 },
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: '#7c82a0' } },
+      y: {
+        grid: { color: gridColor },
+        ticks: { color: '#7c82a0', stepSize: 1 },
+        beginAtZero: true,
+      },
+    },
+  }
+});
+
+// ── 4. Aging Stacked Bar Chart ────────────────────────────────────────────────
+new Chart(document.getElementById('agingChart'), {
+  type: 'bar',
+  data: {
+    labels: AGING_NOPS,
+    datasets: [
+      {
+        label: '0–3 hari',
+        data: AGING_0_3,
+        backgroundColor: '#3ecf8e',
+        borderRadius: 4,
+        borderSkipped: false,
+      },
+      {
+        label: '4–7 hari',
+        data: AGING_4_7,
+        backgroundColor: '#fbbf24',
+        borderRadius: 4,
+        borderSkipped: false,
+      },
+      {
+        label: '8–14 hari',
+        data: AGING_8_14,
+        backgroundColor: '#f97316',
+        borderRadius: 4,
+        borderSkipped: false,
+      },
+      {
+        label: '>14 hari',
+        data: AGING_14PLUS,
+        backgroundColor: '#f43f5e',
+        borderRadius: 4,
+        borderSkipped: false,
+      },
+    ]
+  },
+  options: {
+    responsive: true,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { position: 'top', labels: { boxWidth: 12, usePointStyle: true } },
+      tooltip: { backgroundColor: '#1a1d27', borderColor: '#2e3348', borderWidth: 1 },
+    },
+    scales: {
+      x: { stacked: true, grid: { display: false }, ticks: { color: '#7c82a0' } },
+      y: { stacked: true, grid: { color: gridColor }, ticks: { color: '#7c82a0', stepSize: 1 }, beginAtZero: true },
+    },
+  }
+});
+
+// ── 5. Payload Horizontal Bar Chart ──────────────────────────────────────────
+if (PAY_LABELS.length > 0) {
+  new Chart(document.getElementById('payloadChart'), {
+    type: 'bar',
+    data: {
+      labels: PAY_LABELS,
+      datasets: [
+        {
+          label: 'Util % Saat Open',
+          data: PAY_BEFORE,
+          backgroundColor: 'rgba(244,63,94,0.7)',
+          borderRadius: 4,
+          borderSkipped: false,
+        },
+        {
+          label: 'Util % Saat Clear',
+          data: PAY_AFTER,
+          backgroundColor: PAY_COLORS,
+          borderRadius: 4,
+          borderSkipped: false,
+        },
+      ]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'top', labels: { boxWidth: 12, usePointStyle: true } },
+        tooltip: {
+          backgroundColor: '#1a1d27',
+          borderColor: '#2e3348',
+          borderWidth: 1,
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.x?.toFixed(2) ?? '-'}%`,
+          },
+        },
+      },
+      scales: {
+        x: {
+          grid: { color: gridColor },
+          ticks: { color: '#7c82a0', callback: v => v + '%' },
+          beginAtZero: true,
+        },
+        y: { grid: { display: false }, ticks: { color: '#7c82a0', font: { size: 11 } } },
+      },
+    }
+  });
+}
+
+// ── 6. Payload Donut ──────────────────────────────────────────────────────────
+new Chart(document.getElementById('payloadDonut'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Improve ✅', 'No Improve ❌'],
+    datasets: [{
+      data: [TOTAL_IMPROVED, TOTAL_NOT_IMPROVED],
+      backgroundColor: ['#3ecf8e', '#f43f5e'],
+      borderColor: '#1a1d27',
+      borderWidth: 3,
+      hoverOffset: 8,
+    }]
+  },
+  options: {
+    responsive: true,
+    cutout: '65%',
+    plugins: {
+      legend: { position: 'bottom', labels: { padding: 16, boxWidth: 12, usePointStyle: true } },
+      tooltip: {
+        backgroundColor: '#1a1d27',
+        borderColor: '#2e3348',
+        borderWidth: 1,
+        callbacks: {
+          label: ctx => ` ${ctx.label}: ${ctx.parsed} tiket`,
+        },
+      },
+    },
+  }
+});
+
+// ── 7. Payload Table ──────────────────────────────────────────────────────────
+const payTbody = document.getElementById('payloadTable');
+PAYLOAD_DATA.forEach(r => {
+  const deltaColor = r.improved ? '#3ecf8e' : '#f43f5e';
+  const sign = r.delta > 0 ? '-' : r.delta < 0 ? '+' : '';
+  const pillCls = r.improved ? 'improved' : 'nofix';
+  const pillTxt = r.improved ? '✅ Improve' : '❌ No Improve';
+  payTbody.innerHTML += `
+    <tr>
+      <td><code>${r.site_id}</code></td>
+      <td>${r.nop}</td>
+      <td>${r.open_date}</td>
+      <td>${r.clear_date}</td>
+      <td>${r.util_open ?? '-'}%</td>
+      <td>${r.util_clear !== null ? r.util_clear + '%' : '—'}</td>
+      <td style="color:${deltaColor};font-weight:600">${sign}${Math.abs(r.delta).toFixed(2)}%</td>
+      <td>${r.eth_open ?? '-'}</td>
+      <td>${r.eth_clear !== null ? r.eth_clear : '—'}</td>
+      <td><span class="pill ${pillCls}">${pillTxt}</span></td>
+    </tr>`;
+});
+
+// ── 8. NOP Table ──────────────────────────────────────────────────────────────
+const agingMap = {};
+AGING_DATA.forEach(r => { agingMap[r.nop] = r; });
+
+const tbody = document.getElementById('nopTable');
+NOP_SUMMARY.forEach(row => {
+  const ag = agingMap[row.nop] || {};
+  const total = (row.total_open || 0) + (row.total_needclose || 0);
+  tbody.innerHTML += `
+    <tr>
+      <td><strong>${row.nop}</strong></td>
+      <td><span class="pill open">${row.total_open || 0}</span></td>
+      <td><span class="pill needclose">${row.total_needclose || 0}</span></td>
+      <td><strong>${total}</strong></td>
+      <td>${ag.bracket_0_3 || 0}</td>
+      <td style="color:#fbbf24">${ag.bracket_4_7 || 0}</td>
+      <td style="color:#f97316">${ag.bracket_8_14 || 0}</td>
+      <td style="color:#f43f5e;font-weight:600">${ag.bracket_14_plus || 0}</td>
+    </tr>`;
+});
+</script>
+</body>
+</html>
