@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NOVLI Dashboard — 20 April 2026</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  :root[data-theme="dark"] {
+    --bg:         #0f1117;
+    --surface:    #1a1d27;
+    --surface2:   #22263a;
+    --border:     #2e3348;
+    --text:       #e8eaf0;
+    --text2:      #b0b8d8;
+    --muted:      #7c82a0;
+    --blue:       #4f8ef7;
+    --green:      #3ecf8e;
+    --orange:     #f97316;
+    --red:        #f43f5e;
+    --yellow:     #fbbf24;
+    --purple:     #a78bfa;
+    --grid:       #2e3348;
+    --tip-bg:     #1a1d27;
+    --shadow:     0 4px 24px rgba(0,0,0,0.4);
+    --toggle-bg:  #22263a;
+  }
+  :root[data-theme="light"] {
+    --bg:         #f0f2f8;
+    --surface:    #ffffff;
+    --surface2:   #f5f6fa;
+    --border:     #dde1ef;
+    --text:       #1a1d2e;
+    --text2:      #4a4f6a;
+    --muted:      #8890b0;
+    --blue:       #3b7de8;
+    --green:      #17a871;
+    --orange:     #e06b10;
+    --red:        #e0284a;
+    --yellow:     #d4930a;
+    --purple:     #7c5ce8;
+    --grid:       #e4e8f5;
+    --tip-bg:     #ffffff;
+    --shadow:     0 4px 24px rgba(30,40,80,0.10);
+    --toggle-bg:  #e8eaf5;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+    transition: background 0.25s, color 0.25s;
+  }
+
+  /* Header */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    box-shadow: var(--shadow);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-left { display: flex; align-items: center; gap: 14px; }
+  .header-logo { font-size: 26px; line-height: 1; }
+  .header-left h1 { font-size: 19px; font-weight: 700; color: var(--blue); letter-spacing: -0.3px; }
+  .header-left p  { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .header-right { display: flex; align-items: center; gap: 10px; }
+  .badge {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .theme-toggle {
+    background: var(--toggle-bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text);
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .theme-toggle:hover { background: var(--surface2); }
+
+  /* Layout */
+  .main { padding: 28px 32px; max-width: 1440px; margin: 0 auto; }
+
+  /* Section title */
+  .section-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+    margin-top: 36px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* KPI Cards */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 14px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 22px 16px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    transition: transform 0.15s;
+  }
+  .card:hover { transform: translateY(-2px); }
+  .card-accent {
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 4px; border-radius: 16px 16px 0 0;
+  }
+  .card.blue   .card-accent { background: linear-gradient(90deg,#4f8ef7,#7ab0ff); }
+  .card.orange .card-accent { background: linear-gradient(90deg,#f97316,#fbbf24); }
+  .card.red    .card-accent { background: linear-gradient(90deg,#f43f5e,#ff8fa3); }
+  .card.purple .card-accent { background: linear-gradient(90deg,#a78bfa,#c4b5fd); }
+  .card.green  .card-accent { background: linear-gradient(90deg,#3ecf8e,#7fffcf); }
+  .card-icon   { font-size: 20px; margin-bottom: 10px; display: block; }
+  .card-label  { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.9px; color: var(--muted); margin-bottom: 5px; }
+  .card-value  { font-size: 40px; font-weight: 800; line-height: 1; letter-spacing: -2px; }
+  .card.blue   .card-value { color: var(--blue); }
+  .card.orange .card-value { color: var(--orange); }
+  .card.red    .card-value { color: var(--red); }
+  .card.purple .card-value { color: var(--purple); }
+  .card.green  .card-value { color: var(--green); }
+  .card-sub    { font-size: 12px; color: var(--muted); margin-top: 5px; }
+
+  /* Chart panels */
+  .chart-grid   { display: grid; grid-template-columns: 2fr 1fr; gap: 18px; }
+  .chart-grid-2 { display: grid; grid-template-columns: 1fr 1fr;  gap: 18px; }
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px 24px;
+    box-shadow: var(--shadow);
+  }
+  .panel-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+  .panel-sub   { font-size: 11px; color: var(--muted); margin-bottom: 18px; }
+  .panel canvas { width: 100% !important; }
+
+  /* Table */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th {
+    text-align: left; padding: 10px 14px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.7px;
+    text-transform: uppercase; color: var(--muted);
+    border-bottom: 2px solid var(--border); white-space: nowrap;
+  }
+  td { padding: 11px 14px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: var(--surface2); }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 700; white-space: nowrap;
+  }
+  .pill.open      { background: rgba(79,142,247,0.15); color: var(--blue); }
+  .pill.needclose { background: rgba(249,115,22,0.15);  color: var(--orange); }
+  .pill.improved  { background: rgba(62,207,142,0.15);  color: var(--green); }
+  .pill.nofix     { background: rgba(244,63,94,0.15);   color: var(--red); }
+
+  /* Payload stat chips */
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+  .stat-chip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 20px;
+    box-shadow: var(--shadow);
+  }
+  .stat-chip.s-green { border-left: 4px solid var(--green); }
+  .stat-chip.s-red   { border-left: 4px solid var(--red); }
+  .stat-chip.s-blue  { border-left: 4px solid var(--blue); }
+  .stat-chip.s-muted { border-left: 4px solid var(--muted); }
+  .stat-chip .val { font-size: 32px; font-weight: 800; line-height: 1; letter-spacing: -1px; }
+  .stat-chip.s-green .val { color: var(--green); }
+  .stat-chip.s-red   .val { color: var(--red); }
+  .stat-chip.s-blue  .val { color: var(--blue); }
+  .stat-chip.s-muted .val { color: var(--muted); }
+  .stat-chip .lbl { font-size: 11px; color: var(--muted); margin-top: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.7px; }
+
+  /* Footer */
+  .footer {
+    text-align: center; padding: 28px;
+    color: var(--muted); font-size: 12px;
+    border-top: 1px solid var(--border); margin-top: 48px;
+  }
+
+  @media (max-width: 1100px) { .cards { grid-template-columns: repeat(3,1fr); } }
+  @media (max-width: 900px)  { .chart-grid, .chart-grid-2 { grid-template-columns: 1fr; } }
+  @media (max-width: 700px)  { .cards { grid-template-columns: repeat(2,1fr); } .stat-row { grid-template-columns: repeat(2,1fr); } }
+  @media (max-width: 600px)  { .main { padding: 14px; } .header { padding: 14px 16px; } }
+
+  /* Radar pulse markers */
+  .site-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    position: relative;
+  }
+  .site-dot::before, .site-dot::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    animation: radar-ring 2.2s ease-out infinite;
+  }
+  .site-dot::after { animation-delay: 1.1s; }
+  @keyframes radar-ring {
+    0%   { transform: translate(-50%,-50%) scale(1);   opacity: 0.8; }
+    100% { transform: translate(-50%,-50%) scale(4.5); opacity: 0; }
+  }
+  .dot-green { background: #3ecf8e; }
+  .dot-green::before, .dot-green::after { border: 2px solid #3ecf8e; }
+  .dot-red   { background: #f43f5e; }
+  .dot-red::before,   .dot-red::after   { border: 2px solid #f43f5e; }
+
+  #siteMap .leaflet-popup-content-wrapper {
+    background: var(--surface); color: var(--text);
+    border: 1px solid var(--border); border-radius: 10px;
+    box-shadow: var(--shadow);
+  }
+  #siteMap .leaflet-popup-tip { background: var(--surface); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="header-logo">📡</div>
+    <div>
+      <h1>NOVLI Dashboard</h1>
+      <p>Monitoring Ticket Sumbagut — Regional Overview</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="badge">📅 20 April 2026</span>
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">☀️ Light Mode</button>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- KPI Cards -->
+  <div class="section-title">Ringkasan Regional</div>
+  <div class="cards">
+    <div class="card blue">
+      <div class="card-accent"></div>
+      <span class="card-icon">🔵</span>
+      <div class="card-label">Total Open</div>
+      <div class="card-value">30</div>
+      <div class="card-sub">Tiket aktif</div>
+    </div>
+    <div class="card orange">
+      <div class="card-accent"></div>
+      <span class="card-icon">🟠</span>
+      <div class="card-label">Need Close</div>
+      <div class="card-value">153</div>
+      <div class="card-sub">Perlu tindaklanjut</div>
+    </div>
+    <div class="card red">
+      <div class="card-accent"></div>
+      <span class="card-icon">🔴</span>
+      <div class="card-label">Prioritas P1</div>
+      <div class="card-value">27</div>
+      <div class="card-sub">High priority</div>
+    </div>
+    <div class="card purple">
+      <div class="card-accent"></div>
+      <span class="card-icon">🟣</span>
+      <div class="card-label">Prioritas P2</div>
+      <div class="card-value">3</div>
+      <div class="card-sub">Medium priority</div>
+    </div>
+    <div class="card green">
+      <div class="card-accent"></div>
+      <span class="card-icon">🟢</span>
+      <div class="card-label">Total Aktif</div>
+      <div class="card-value">183</div>
+      <div class="card-sub">Open + NeedClose</div>
+    </div>
+  </div>
+
+  <!-- 7-Day Trend -->
+  <div class="section-title">Trend 7 Hari Terakhir</div>
+  <div class="chart-grid">
+    <div class="panel">
+      <div class="panel-title">Pergerakan Tiket Harian</div>
+      <div class="panel-sub">Open · Closed · Cleared · ReOpen</div>
+      <canvas id="trendChart" height="110"></canvas>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Komposisi Status</div>
+      <div class="panel-sub">Total kumulatif 7 hari</div>
+      <canvas id="donutChart" height="200"></canvas>
+    </div>
+  </div>
+
+  <!-- NOP Breakdown -->
+  <div class="section-title">Status per NOP</div>
+  <div class="chart-grid-2">
+    <div class="panel">
+      <div class="panel-title">Open vs NeedClose per NOP</div>
+      <div class="panel-sub">Jumlah tiket aktif tiap regional</div>
+      <canvas id="nopChart" height="220"></canvas>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Aging Distribution per NOP</div>
+      <div class="panel-sub">Berapa lama tiket sudah open</div>
+      <canvas id="agingChart" height="220"></canvas>
+    </div>
+  </div>
+
+  <!-- Payload Improvement -->
+  <div class="section-title">Payload Improvement — Tiket Cleared 7 Hari Terakhir</div>
+  <div class="stat-row">
+    <div class="stat-chip s-green">
+      <div class="val">5</div>
+      <div class="lbl">✅ Payload Improve</div>
+    </div>
+    <div class="stat-chip s-red">
+      <div class="val">55</div>
+      <div class="lbl">❌ No Improve</div>
+    </div>
+    <div class="stat-chip s-blue">
+      <div class="val">8%</div>
+      <div class="lbl">📈 Improve Rate</div>
+    </div>
+    <div class="stat-chip s-muted">
+      <div class="val">60</div>
+      <div class="lbl">🎯 Total Cleared</div>
+    </div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="panel">
+      <div class="panel-title">Payload GB — Sebelum vs Sesudah Clear</div>
+      <div class="panel-sub">🟢 Naik = improve &nbsp;·&nbsp; 🔴 Turun/sama = no improve &nbsp;·&nbsp; Top 30 site</div>
+      <canvas id="payloadChart" height="380"></canvas>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Distribusi Hasil Clear</div>
+      <div class="panel-sub">Persentase tiket yang payload-nya membaik</div>
+      <canvas id="payloadDonut" height="200"></canvas>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:18px">
+    <div class="panel-title" style="margin-bottom:4px">Peta Site — Payload per Tiket Cleared</div>
+    <div class="panel-sub" style="margin-bottom:12px">
+      <span style="color:var(--green);font-weight:700">&#9679; Hijau</span> = Improve &nbsp;&middot;&nbsp;
+      <span style="color:var(--red);font-weight:700">&#9679; Merah</span> = No Improve
+    </div>
+    <div id="siteMap" style="height:500px;border-radius:12px;overflow:hidden;"></div>
+  </div>
+
+  <!-- NOP Detail Table -->
+  <div class="section-title">Detail per NOP</div>
+  <div class="panel">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>NOP</th><th>Open</th><th>Need Close</th><th>Total Aktif</th>
+            <th>0–3 Hari</th><th>4–7 Hari</th><th>8–14 Hari</th><th>&gt;14 Hari</th>
+          </tr>
+        </thead>
+        <tbody id="nopTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  Generated by NOVLI Bot &nbsp;·&nbsp; 2026-04-20 &nbsp;·&nbsp; Data: SQA_SUMBAGUT
+</div>
+
+<script>
+// ── Data ──────────────────────────────────────────────────────────────────────
+const TREND_LABELS   = ["14 Apr", "15 Apr", "16 Apr", "17 Apr", "18 Apr", "19 Apr", "20 Apr"];
+const TREND_OPENED   = [13, 13, 17, 12, 0, 0, 0];
+const TREND_CLOSED   = [0, 0, 0, 0, 0, 0, 0];
+const TREND_CLEARED  = [6, 0, 2, 50, 0, 0, 0];
+const TREND_REOPENED = [0, 0, 0, 0, 0, 0, 0];
+const NOP_LABELS     = ["ACEH", "BINJAI", "MEDAN", "PADANG SIDEMPUAN", "PEMATANG SIANTAR", "RANTAU PRAPAT"];
+const NOP_OPEN       = [1, 1, 24, 0, 2, 2];
+const NOP_NEEDCLOSE  = [23, 15, 77, 24, 3, 11];
+const AGING_NOPS     = ["ACEH", "BINJAI", "MEDAN", "PADANG SIDEMPUAN", "PEMATANG SIANTAR", "RANTAU PRAPAT"];
+const AGING_0_3      = [0, 0, 12, 0, 0, 0];
+const AGING_4_7      = [9, 3, 25, 3, 0, 3];
+const AGING_8_14     = [15, 13, 64, 21, 4, 10];
+const AGING_14PLUS   = [0, 0, 0, 0, 0, 0];
+const NOP_SUMMARY    = [{"nop": "ACEH", "total_open": 1, "total_needclose": 23}, {"nop": "BINJAI", "total_open": 1, "total_needclose": 15}, {"nop": "MEDAN", "total_open": 24, "total_needclose": 77}, {"nop": "PADANG SIDEMPUAN", "total_open": 0, "total_needclose": 24}, {"nop": "PEMATANG SIANTAR", "total_open": 2, "total_needclose": 3}, {"nop": "RANTAU PRAPAT", "total_open": 2, "total_needclose": 11}];
+const AGING_DATA     = [{"nop": "ACEH", "bracket_0_3": 0, "bracket_4_7": 9, "bracket_8_14": 15, "bracket_14_plus": 0}, {"nop": "BINJAI", "bracket_0_3": 0, "bracket_4_7": 3, "bracket_8_14": 13, "bracket_14_plus": 0}, {"nop": "MEDAN", "bracket_0_3": 12, "bracket_4_7": 25, "bracket_8_14": 64, "bracket_14_plus": 0}, {"nop": "PADANG SIDEMPUAN", "bracket_0_3": 0, "bracket_4_7": 3, "bracket_8_14": 21, "bracket_14_plus": 0}, {"nop": "PEMATANG SIANTAR", "bracket_0_3": 0, "bracket_4_7": 0, "bracket_8_14": 4, "bracket_14_plus": 0}, {"nop": "RANTAU PRAPAT", "bracket_0_3": 0, "bracket_4_7": 3, "bracket_8_14": 10, "bracket_14_plus": 0}];
+const PAYLOAD_DATA   = [{"ticket_id": "LBP20520260406", "site_id": "LBP205", "nop": "PEMATANG SIANTAR", "open_date": "2026-04-06", "clear_date": "2026-04-14", "pay_open": 442.0, "pay_clear": 663.0, "improved": true, "delta": 221.0}, {"ticket_id": "LBP18320260331", "site_id": "LBP183", "nop": "MEDAN", "open_date": "2026-03-31", "clear_date": "2026-04-13", "pay_open": 599.0, "pay_clear": 656.0, "improved": true, "delta": 57.0}, {"ticket_id": "LBP39320260408", "site_id": "LBP393", "nop": "PEMATANG SIANTAR", "open_date": "2026-04-08", "clear_date": "2026-04-14", "pay_open": 801.0, "pay_clear": 837.0, "improved": true, "delta": 36.0}, {"ticket_id": "LBP85820260406", "site_id": "LBP858", "nop": "PEMATANG SIANTAR", "open_date": "2026-04-06", "clear_date": "2026-04-14", "pay_open": 604.0, "pay_clear": 631.0, "improved": true, "delta": 27.0}, {"ticket_id": "LBP11720260406", "site_id": "LBP117", "nop": "PEMATANG SIANTAR", "open_date": "2026-04-06", "clear_date": "2026-04-14", "pay_open": 584.0, "pay_clear": 593.0, "improved": true, "delta": 9.0}, {"ticket_id": "MDN94920260402", "site_id": "MDN949", "nop": "MEDAN", "open_date": "2026-04-02", "clear_date": "2026-04-17", "pay_open": 1087.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "KIS11520260402", "site_id": "KIS115", "nop": "RANTAU PRAPAT", "open_date": "2026-04-02", "clear_date": "2026-04-17", "pay_open": 1216.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "LBP10820260402", "site_id": "LBP108", "nop": "MEDAN", "open_date": "2026-04-02", "clear_date": "2026-04-17", "pay_open": 891.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "LBP19420260402", "site_id": "LBP194", "nop": "MEDAN", "open_date": "2026-04-02", "clear_date": "2026-04-17", "pay_open": 455.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "LBP21320260406", "site_id": "LBP213", "nop": "MEDAN", "open_date": "2026-04-06", "clear_date": "2026-04-17", "pay_open": 1302.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "LBP49720260406", "site_id": "LBP497", "nop": "MEDAN", "open_date": "2026-04-06", "clear_date": "2026-04-17", "pay_open": 951.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "LBP69420260402", "site_id": "LBP694", "nop": "MEDAN", "open_date": "2026-04-02", "clear_date": "2026-04-17", "pay_open": 595.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "MDN01020260331", "site_id": "MDN010", "nop": "MEDAN", "open_date": "2026-03-31", "clear_date": "2026-04-17", "pay_open": 2552.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "MDN01120260406", "site_id": "MDN011", "nop": "MEDAN", "open_date": "2026-04-06", "clear_date": "2026-04-17", "pay_open": 1656.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "MDN04420260402", "site_id": "MDN044", "nop": "MEDAN", "open_date": "2026-04-02", "clear_date": "2026-04-17", "pay_open": 1281.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "MDN12520260406", "site_id": "MDN125", "nop": "MEDAN", "open_date": "2026-04-06", "clear_date": "2026-04-17", "pay_open": 845.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "MDN54320260402", "site_id": "MDN543", "nop": "MEDAN", "open_date": "2026-04-02", "clear_date": "2026-04-17", "pay_open": 1302.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "MDN57720260402", "site_id": "MDN577", "nop": "MEDAN", "open_date": "2026-04-02", "clear_date": "2026-04-17", "pay_open": 857.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "MDN58920260402", "site_id": "MDN589", "nop": "MEDAN", "open_date": "2026-04-02", "clear_date": "2026-04-17", "pay_open": 596.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "MDN61020260402", "site_id": "MDN610", "nop": "MEDAN", "open_date": "2026-04-02", "clear_date": "2026-04-17", "pay_open": 2047.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "MDN75920260402", "site_id": "MDN759", "nop": "MEDAN", "open_date": "2026-04-02", "clear_date": "2026-04-17", "pay_open": 2108.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "BGE91420260402", "site_id": "BGE914", "nop": "PEMATANG SIANTAR", "open_date": "2026-04-02", "clear_date": "2026-04-17", "pay_open": 620.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "MDN97820260402", "site_id": "MDN978", "nop": "MEDAN", "open_date": "2026-04-02", "clear_date": "2026-04-17", "pay_open": 2239.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "MDN98020260402", "site_id": "MDN980", "nop": "MEDAN", "open_date": "2026-04-02", "clear_date": "2026-04-17", "pay_open": 782.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "MDX24120260402", "site_id": "MDX241", "nop": "MEDAN", "open_date": "2026-04-02", "clear_date": "2026-04-17", "pay_open": 777.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "TRT88520260330", "site_id": "TRT885", "nop": "PADANG SIDEMPUAN", "open_date": "2026-03-30", "clear_date": "2026-04-17", "pay_open": 788.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "LBP40820260406", "site_id": "LBP408", "nop": "MEDAN", "open_date": "2026-04-06", "clear_date": "2026-04-17", "pay_open": 1303.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "LBP41820260406", "site_id": "LBP418", "nop": "MEDAN", "open_date": "2026-04-06", "clear_date": "2026-04-17", "pay_open": 888.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "SGI13220260406", "site_id": "SGI132", "nop": "ACEH", "open_date": "2026-04-06", "clear_date": "2026-04-17", "pay_open": 2782.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "NAD58020260406", "site_id": "NAD580", "nop": "ACEH", "open_date": "2026-04-06", "clear_date": "2026-04-17", "pay_open": 3778.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "PSP27820260406", "site_id": "PSP278", "nop": "RANTAU PRAPAT", "open_date": "2026-04-06", "clear_date": "2026-04-17", "pay_open": 1659.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "PSP34020260406", "site_id": "PSP340", "nop": "RANTAU PRAPAT", "open_date": "2026-04-06", "clear_date": "2026-04-17", "pay_open": 1887.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "MDN63220260406", "site_id": "MDN632", "nop": "MEDAN", "open_date": "2026-04-06", "clear_date": "2026-04-17", "pay_open": 1604.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "RAP03120260406", "site_id": "RAP031", "nop": "RANTAU PRAPAT", "open_date": "2026-04-06", "clear_date": "2026-04-17", "pay_open": 0.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "BGE91420260406", "site_id": "BGE914", "nop": "PEMATANG SIANTAR", "open_date": "2026-04-06", "clear_date": "2026-04-17", "pay_open": 574.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "BJI23020260406", "site_id": "BJI230", "nop": "BINJAI", "open_date": "2026-04-06", "clear_date": "2026-04-17", "pay_open": 966.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "BKJ00420260406", "site_id": "BKJ004", "nop": "ACEH", "open_date": "2026-04-06", "clear_date": "2026-04-17", "pay_open": 1409.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "JHO24220260406", "site_id": "JHO242", "nop": "ACEH", "open_date": "2026-04-06", "clear_date": "2026-04-17", "pay_open": 2099.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "MDN82620260406", "site_id": "MDN826", "nop": "MEDAN", "open_date": "2026-04-06", "clear_date": "2026-04-17", "pay_open": 1258.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "LBP12420260406", "site_id": "LBP124", "nop": "MEDAN", "open_date": "2026-04-06", "clear_date": "2026-04-17", "pay_open": 1549.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "LBP18320260406", "site_id": "LBP183", "nop": "MEDAN", "open_date": "2026-04-06", "clear_date": "2026-04-17", "pay_open": 636.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "MDN90720260406", "site_id": "MDN907", "nop": "MEDAN", "open_date": "2026-04-06", "clear_date": "2026-04-17", "pay_open": 676.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "RAP75920260406", "site_id": "RAP759", "nop": "RANTAU PRAPAT", "open_date": "2026-04-06", "clear_date": "2026-04-17", "pay_open": 1627.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "LBP23220260406", "site_id": "LBP232", "nop": "MEDAN", "open_date": "2026-04-06", "clear_date": "2026-04-17", "pay_open": 1269.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "LBP35320260406", "site_id": "LBP353", "nop": "MEDAN", "open_date": "2026-04-06", "clear_date": "2026-04-17", "pay_open": 1639.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "LBP62820260406", "site_id": "LBP628", "nop": "MEDAN", "open_date": "2026-04-06", "clear_date": "2026-04-17", "pay_open": 539.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "LBP82120260406", "site_id": "LBP821", "nop": "MEDAN", "open_date": "2026-04-06", "clear_date": "2026-04-17", "pay_open": 2524.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "MAK75120260406", "site_id": "MAK751", "nop": "ACEH", "open_date": "2026-04-06", "clear_date": "2026-04-17", "pay_open": 2999.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "MDX18520260406", "site_id": "MDX185", "nop": "MEDAN", "open_date": "2026-04-06", "clear_date": "2026-04-17", "pay_open": 984.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "STB07920260406", "site_id": "STB079", "nop": "BINJAI", "open_date": "2026-04-06", "clear_date": "2026-04-17", "pay_open": 2089.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "MDX28420260406", "site_id": "MDX284", "nop": "MEDAN", "open_date": "2026-04-06", "clear_date": "2026-04-17", "pay_open": 1674.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "MDN26120260406", "site_id": "MDN261", "nop": "MEDAN", "open_date": "2026-04-06", "clear_date": "2026-04-17", "pay_open": 2296.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "MDN29320260406", "site_id": "MDN293", "nop": "MEDAN", "open_date": "2026-04-06", "clear_date": "2026-04-17", "pay_open": 988.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "MDN36220260406", "site_id": "MDN362", "nop": "MEDAN", "open_date": "2026-04-06", "clear_date": "2026-04-17", "pay_open": 1564.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "NAD10320260406", "site_id": "NAD103", "nop": "ACEH", "open_date": "2026-04-06", "clear_date": "2026-04-17", "pay_open": 3376.0, "pay_clear": null, "improved": false, "delta": 0}, {"ticket_id": "LBP11720260331", "site_id": "LBP117", "nop": "PEMATANG SIANTAR", "open_date": "2026-03-31", "clear_date": "2026-04-14", "pay_open": 606.0, "pay_clear": 593.0, "improved": false, "delta": -13.0}, {"ticket_id": "MDN55220260331", "site_id": "MDN552", "nop": "MEDAN", "open_date": "2026-03-31", "clear_date": "2026-04-13", "pay_open": 887.0, "pay_clear": 856.0, "improved": false, "delta": -31.0}, {"ticket_id": "LBP00920260410", "site_id": "LBP009", "nop": "PEMATANG SIANTAR", "open_date": "2026-04-10", "clear_date": "2026-04-16", "pay_open": 1311.0, "pay_clear": 1275.0, "improved": false, "delta": -36.0}, {"ticket_id": "LBP06820260410", "site_id": "LBP068", "nop": "PEMATANG SIANTAR", "open_date": "2026-04-10", "clear_date": "2026-04-16", "pay_open": 1525.0, "pay_clear": 1446.0, "improved": false, "delta": -79.0}, {"ticket_id": "LBP10020260330", "site_id": "LBP100", "nop": "PEMATANG SIANTAR", "open_date": "2026-03-30", "clear_date": "2026-04-14", "pay_open": 1203.0, "pay_clear": 1106.0, "improved": false, "delta": -97.0}];
+const PAY_LABELS     = ["LBP205", "LBP183", "LBP393", "LBP858", "LBP117", "MDN949", "KIS115", "LBP108", "LBP194", "LBP213", "LBP497", "LBP694", "MDN010", "MDN011", "MDN044", "MDN125", "MDN543", "MDN577", "MDN589", "MDN610", "MDN759", "BGE914", "MDN978", "MDN980", "MDX241", "TRT885", "LBP408", "LBP418", "SGI132", "NAD580"];
+const PAY_BEFORE     = [442.0, 599.0, 801.0, 604.0, 584.0, 1087.0, 1216.0, 891.0, 455.0, 1302.0, 951.0, 595.0, 2552.0, 1656.0, 1281.0, 845.0, 1302.0, 857.0, 596.0, 2047.0, 2108.0, 620.0, 2239.0, 782.0, 777.0, 788.0, 1303.0, 888.0, 2782.0, 3778.0];
+const PAY_AFTER      = [663.0, 656.0, 837.0, 631.0, 593.0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+const PAY_COLORS     = ["rgba(62,207,142,0.85)", "rgba(62,207,142,0.85)", "rgba(62,207,142,0.85)", "rgba(62,207,142,0.85)", "rgba(62,207,142,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)", "rgba(244,63,94,0.85)"];
+const TOTAL_IMPROVED     = 5;
+const TOTAL_NOT_IMPROVED = 55;
+const SITE_COORDS        = {"BGE914": {"lat": 2.574577, "lon": 99.062154, "name": "LUMBANJULU"}, "BJI230": {"lat": 3.605001, "lon": 98.485555, "name": "BINJAI3RELOK"}, "BKJ004": {"lat": 4.077355, "lon": 97.061548, "name": "TERANGON2"}, "JHO242": {"lat": 5.304122, "lon": 95.242367, "name": "REPGLELHOKHUBTEL"}, "KIS115": {"lat": 2.664346, "lon": 99.634216, "name": "AEKLOBAPEKAN2"}, "LBP009": {"lat": 3.430277, "lon": 99.161944, "name": "KAMPUNGSAMBEN"}, "LBP068": {"lat": 3.395233, "lon": 99.260268, "name": "MANGGA2"}, "LBP100": {"lat": 3.477038, "lon": 99.083327, "name": "KEBUNSPEMPATFIRDAUS"}, "LBP108": {"lat": 3.597777, "lon": 98.607777, "name": "PINANGBARIS2"}, "LBP117": {"lat": 3.617501, "lon": 99.041388, "name": "LUBUKSABAN"}, "LBP124": {"lat": 3.308611, "lon": 98.652501, "name": "PANENBIRUBIRU"}, "LBP183": {"lat": 3.495021, "lon": 98.689691, "name": "DELITUABARAT"}, "LBP194": {"lat": 3.633055, "lon": 98.778888, "name": "KOLAM"}, "LBP205": {"lat": 3.435001, "lon": 98.924166, "name": "PULAUGAMBAR"}, "LBP213": {"lat": 3.618934, "lon": 98.609028, "name": "KLAMBM42"}, "LBP232": {"lat": 3.489511, "lon": 98.540031, "name": "LAUBAKERI"}, "LBP353": {"lat": 3.473063, "lon": 98.685653, "name": "TANAHMUJUR"}, "LBP393": {"lat": 3.649722, "lon": 98.955001, "name": "KOTAPARI"}, "LBP408": {"lat": 3.487367, "lon": 98.66075, "name": "BATUPENJEMURAN"}, "LBP418": {"lat": 3.576354, "lon": 98.757218, "name": "DATUKKABUPASARIII3"}, "LBP497": {"lat": 3.64, "lon": 98.759166, "name": "KOLAM"}, "LBP628": {"lat": 3.480855, "lon": 98.887949, "name": "YONIF121GALANG"}, "LBP694": {"lat": 3.561388, "lon": 98.895833, "name": "LBPTEBINGRINGROAD"}, "LBP821": {"lat": 3.64332, "lon": 98.594471, "name": "KLAMBIRHPERAK"}, "LBP858": {"lat": 3.264166, "lon": 99.040555, "name": "SIBARAU"}, "MAK751": {"lat": 4.120388, "lon": 96.292999, "name": "SIMPANGJEURAMHUBTEL"}, "MDN010": {"lat": 3.540883, "lon": 98.708451, "name": "SIMPANGLIMUN"}, "MDN011": {"lat": 3.560789, "lon": 98.603818, "name": "SRIGUNTING"}, "MDN044": {"lat": 3.572222, "lon": 98.621388, "name": "TAPIANNAULI"}, "MDN125": {"lat": 3.690231, "lon": 98.651761, "name": "TANAHENAMRATUS"}, "MDN261": {"lat": 3.529075, "lon": 98.636082, "name": "JAMINGINTINGGGKEBUN"}, "MDN293": {"lat": 3.687717, "lon": 98.685847, "name": "MARTUBUNG"}, "MDN362": {"lat": 3.628888, "lon": 98.695001, "name": "PANCING3"}, "MDN543": {"lat": 3.541111, "lon": 98.727222, "name": "TOLAMPELAS"}, "MDN552": {"lat": 3.597571, "lon": 98.640471, "name": "AMALLUHUR"}, "MDN577": {"lat": 3.651213, "lon": 98.672478, "name": "JLKAWAT"}, "MDN589": {"lat": 3.651538, "lon": 98.686139, "name": "SUASAMABAR"}, "MDN610": {"lat": 3.617636, "lon": 98.650409, "name": "KPTSUMARSONO2"}, "MDN632": {"lat": 3.690751, "lon": 98.663587, "name": "JLAMDMARELAN"}, "MDN759": {"lat": 3.541426, "lon": 98.660364, "name": "AHNASUTION"}, "MDN826": {"lat": 3.591388, "lon": 98.614444, "name": "MACRO"}, "MDN907": {"lat": 3.600001, "lon": 98.608333, "name": "CINTADAMAIKLAMBIR"}, "MDN949": {"lat": 3.566741, "lon": 98.697251, "name": "HMJONI"}, "MDN978": {"lat": 3.777473, "lon": 98.683997, "name": "SELEBESGGVBELAWAN"}, "MDN980": {"lat": 3.547486, "lon": 98.705912, "name": "GARUII"}, "MDX185": {"lat": 3.561666, "lon": 98.617501, "name": "BUNGAASOKA"}, "MDX241": {"lat": 3.601388, "lon": 98.647222, "name": "ESCAPESPA"}, "MDX284": {"lat": 3.514256, "lon": 98.596476, "name": "PURIANOM"}, "NAD103": {"lat": 5.58629, "lon": 95.360191, "name": "BAIT"}, "NAD580": {"lat": 5.591547, "lon": 95.3671, "name": "HUTAPASIE"}, "PSP278": {"lat": 11.60474, "lon": 99.891386, "name": "SIALIALI"}, "PSP340": {"lat": 11.66471, "lon": 100.058005, "name": "ALIAGAUNIT4"}, "RAP759": {"lat": 2.405877, "lon": 99.837377, "name": "TORGANDA"}, "SGI132": {"lat": 5.232131, "lon": 96.259739, "name": "MEUREUDUHUBTEL"}, "STB079": {"lat": 4.01738, "lon": 98.287505, "name": "PANGKALANBRANDAN"}, "TRT885": {"lat": 1.997033, "lon": 99.104104, "name": "GODUNGBOROTAN"}, "RAP031": {"lat": 2.464339, "lon": 100.271895, "name": "PTHPPSEIRAKYAT"}};
+
+// ── Theme ─────────────────────────────────────────────────────────────────────
+let isDark = true;
+function toggleTheme() {
+  isDark = !isDark;
+  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  document.getElementById('themeBtn').textContent = isDark ? '☀️ Light Mode' : '🌙 Dark Mode';
+  refreshCharts();
+}
+function css(v) { return getComputedStyle(document.documentElement).getPropertyValue('--' + v).trim(); }
+
+// ── Chart helpers ─────────────────────────────────────────────────────────────
+const ALL_CHARTS = {};
+function tip() {
+  return {
+    backgroundColor: css('tip-bg'), borderColor: css('border'), borderWidth: 1,
+    padding: 12, titleColor: css('text'), bodyColor: css('text2'),
+  };
+}
+
+// ── 1. Trend Line ─────────────────────────────────────────────────────────────
+ALL_CHARTS.trend = new Chart(document.getElementById('trendChart'), {
+  type: 'line',
+  data: {
+    labels: TREND_LABELS,
+    datasets: [
+      { label:'Open',    data:TREND_OPENED,   borderColor:'#4f8ef7', backgroundColor:'rgba(79,142,247,0.08)',  borderWidth:2.5, pointRadius:5, pointHoverRadius:7, fill:true, tension:0.4 },
+      { label:'Closed',  data:TREND_CLOSED,   borderColor:'#3ecf8e', backgroundColor:'rgba(62,207,142,0.07)', borderWidth:2.5, pointRadius:5, pointHoverRadius:7, fill:true, tension:0.4 },
+      { label:'Cleared', data:TREND_CLEARED,  borderColor:'#6b7280', backgroundColor:'rgba(107,114,128,0.06)',borderWidth:2,   pointRadius:4, pointHoverRadius:6, fill:true, tension:0.4 },
+      { label:'ReOpen',  data:TREND_REOPENED, borderColor:'#f97316', backgroundColor:'rgba(249,115,22,0.06)', borderWidth:2,   pointRadius:4, pointHoverRadius:6, fill:true, tension:0.4 },
+    ]
+  },
+  options: {
+    responsive:true, interaction:{mode:'index',intersect:false},
+    plugins:{ legend:{position:'top',labels:{boxWidth:12,padding:16,usePointStyle:true,color:css('muted')}}, tooltip:{...tip(),callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.parsed.y} tiket`}} },
+    scales:{
+      x:{grid:{color:css('grid')},ticks:{color:css('muted')}},
+      y:{grid:{color:css('grid')},ticks:{color:css('muted'),stepSize:1},beginAtZero:true},
+    },
+  }
+});
+
+// ── 2. Status Donut ───────────────────────────────────────────────────────────
+const sumOf = a => a.reduce((s,v)=>s+v,0);
+ALL_CHARTS.donut = new Chart(document.getElementById('donutChart'), {
+  type:'doughnut',
+  data:{
+    labels:['Open','Closed','Cleared','ReOpen'],
+    datasets:[{data:[sumOf(TREND_OPENED),sumOf(TREND_CLOSED),sumOf(TREND_CLEARED),sumOf(TREND_REOPENED)],backgroundColor:['#4f8ef7','#3ecf8e','#6b7280','#f97316'],borderColor:css('surface'),borderWidth:3,hoverOffset:8}]
+  },
+  options:{
+    responsive:true,cutout:'68%',
+    plugins:{legend:{position:'bottom',labels:{padding:14,boxWidth:12,usePointStyle:true,color:css('muted')}},tooltip:{...tip(),callbacks:{label:ctx=>` ${ctx.label}: ${ctx.parsed} tiket`}}},
+  }
+});
+
+// ── 3. NOP Grouped Bar ────────────────────────────────────────────────────────
+ALL_CHARTS.nop = new Chart(document.getElementById('nopChart'), {
+  type:'bar',
+  data:{
+    labels:NOP_LABELS,
+    datasets:[
+      {label:'Open',      data:NOP_OPEN,      backgroundColor:'rgba(79,142,247,0.85)', borderRadius:6,borderSkipped:false},
+      {label:'NeedClose', data:NOP_NEEDCLOSE,  backgroundColor:'rgba(249,115,22,0.85)',borderRadius:6,borderSkipped:false},
+    ]
+  },
+  options:{
+    responsive:true,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{position:'top',labels:{boxWidth:12,usePointStyle:true,color:css('muted')}},tooltip:tip()},
+    scales:{x:{grid:{display:false},ticks:{color:css('muted')}},y:{grid:{color:css('grid')},ticks:{color:css('muted'),stepSize:1},beginAtZero:true}},
+  }
+});
+
+// ── 4. Aging Stacked Bar ──────────────────────────────────────────────────────
+ALL_CHARTS.aging = new Chart(document.getElementById('agingChart'), {
+  type:'bar',
+  data:{
+    labels:AGING_NOPS,
+    datasets:[
+      {label:'0–3 hari', data:AGING_0_3,    backgroundColor:'#3ecf8e',borderRadius:4,borderSkipped:false},
+      {label:'4–7 hari', data:AGING_4_7,    backgroundColor:'#fbbf24',borderRadius:4,borderSkipped:false},
+      {label:'8–14 hari',data:AGING_8_14,   backgroundColor:'#f97316',borderRadius:4,borderSkipped:false},
+      {label:'>14 hari',      data:AGING_14PLUS, backgroundColor:'#f43f5e',borderRadius:4,borderSkipped:false},
+    ]
+  },
+  options:{
+    responsive:true,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{position:'top',labels:{boxWidth:12,usePointStyle:true,color:css('muted')}},tooltip:tip()},
+    scales:{
+      x:{stacked:true,grid:{display:false},ticks:{color:css('muted')}},
+      y:{stacked:true,grid:{color:css('grid')},ticks:{color:css('muted'),stepSize:1},beginAtZero:true},
+    },
+  }
+});
+
+// ── 5. Payload Horizontal Bar ─────────────────────────────────────────────────
+if (PAY_LABELS.length > 0) {
+  ALL_CHARTS.payload = new Chart(document.getElementById('payloadChart'), {
+    type:'bar',
+    data:{
+      labels:PAY_LABELS,
+      datasets:[
+        {label:'Payload GB (Open)',  data:PAY_BEFORE,backgroundColor:'rgba(244,63,94,0.65)', borderRadius:4,borderSkipped:false},
+        {label:'Payload GB (Clear)', data:PAY_AFTER, backgroundColor:PAY_COLORS,             borderRadius:4,borderSkipped:false},
+      ]
+    },
+    options:{
+      indexAxis:'y',responsive:true,interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{position:'top',labels:{boxWidth:12,usePointStyle:true,color:css('muted')}},
+        tooltip:{...tip(),callbacks:{label:ctx=>` ${ctx.dataset.label}: ${(ctx.parsed.x??0).toFixed(2)} GB`}},
+      },
+      scales:{
+        x:{grid:{color:css('grid')},ticks:{color:css('muted'),callback:v=>v+' GB'},beginAtZero:true},
+        y:{grid:{display:false},ticks:{color:css('muted'),font:{size:11}}},
+      },
+    }
+  });
+} else {
+  document.getElementById('payloadChart').closest('.panel').innerHTML +=
+    '<p style="color:var(--muted);text-align:center;padding:32px 0">Belum ada data cleared 7 hari terakhir.</p>';
+}
+
+// ── 6. Payload Donut ──────────────────────────────────────────────────────────
+ALL_CHARTS.payDonut = new Chart(document.getElementById('payloadDonut'), {
+  type:'doughnut',
+  data:{
+    labels:['Improve ✅','No Improve ❌'],
+    datasets:[{data:[TOTAL_IMPROVED,TOTAL_NOT_IMPROVED],backgroundColor:['#3ecf8e','#f43f5e'],borderColor:css('surface'),borderWidth:3,hoverOffset:8}]
+  },
+  options:{
+    responsive:true,cutout:'65%',
+    plugins:{legend:{position:'bottom',labels:{padding:16,boxWidth:12,usePointStyle:true,color:css('muted')}},tooltip:{...tip(),callbacks:{label:ctx=>` ${ctx.label}: ${ctx.parsed} tiket`}}},
+  }
+});
+
+// ── 7. Site Map ───────────────────────────────────────────────────────────────
+(function () {
+  const mapEl = document.getElementById('siteMap');
+  if (!mapEl) return;
+
+  // Collect valid markers to auto-fit bounds
+  const markers = [];
+  PAYLOAD_DATA.forEach(r => {
+    const c = SITE_COORDS[r.site_id];
+    if (!c) return;
+    const isGreen = r.improved;
+    const dotCls  = isGreen ? 'dot-green' : 'dot-red';
+    const sign    = r.delta > 0 ? '+' : '';
+    const icon = L.divIcon({
+      className: '',
+      html: `<div class="site-dot ${dotCls}"></div>`,
+      iconSize:   [12, 12],
+      iconAnchor: [6, 6],
+      popupAnchor:[0, -10],
+    });
+    const popup = `
+      <div style="font-size:13px;line-height:1.7">
+        <strong>${r.site_id}</strong> &mdash; ${c.name}<br>
+        <span style="color:#888">NOP:</span> ${r.nop}<br>
+        <span style="color:#888">Clear:</span> ${r.clear_date}<br>
+        <span style="color:#888">Delta:</span>
+        <strong style="color:${isGreen ? '#3ecf8e' : '#f43f5e'}">${sign}${r.delta.toFixed(2)} GB</strong><br>
+        ${isGreen ? '✅ Improve' : '❌ No Improve'}
+      </div>`;
+    markers.push({ lat: c.lat, lon: c.lon, icon, popup });
+  });
+
+  const map = L.map('siteMap', { zoomControl: true, zoomSnap: 0.25 });
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 19,
+  }).addTo(map);
+
+  const bounds = [];
+  markers.forEach(m => {
+    L.marker([m.lat, m.lon], { icon: m.icon })
+      .bindPopup(m.popup)
+      .addTo(map);
+    bounds.push([m.lat, m.lon]);
+  });
+
+  if (bounds.length === 0) {
+    map.setView([-2.5, 102.0], 8);
+  } else if (bounds.length === 1) {
+    map.setView(bounds[0], 12);
+  } else {
+    // Filter outliers: only use points within 2° of median to compute fit bounds
+    const sLat = [...bounds].map(b=>b[0]).sort((a,b)=>a-b);
+    const sLon = [...bounds].map(b=>b[1]).sort((a,b)=>a-b);
+    const medLat = sLat[Math.floor(sLat.length/2)];
+    const medLon = sLon[Math.floor(sLon.length/2)];
+    const core = bounds.filter(([lat,lon]) =>
+      Math.abs(lat-medLat) < 2.5 && Math.abs(lon-medLon) < 2.5
+    );
+    map.fitBounds(core.length > 1 ? core : bounds, { padding: [60, 60], maxZoom: 12 });
+  }
+
+  if (!markers.length) {
+    mapEl.insertAdjacentHTML('beforeend',
+      '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#888;font-size:14px;pointer-events:none">Belum ada data site yang dapat dipetakan.</div>');
+  }
+})();
+
+// ── 8. NOP Table ──────────────────────────────────────────────────────────────
+const agMap = {};
+AGING_DATA.forEach(r => { agMap[r.nop] = r; });
+const nopTbody = document.getElementById('nopTable');
+if (!NOP_SUMMARY.length) {
+  nopTbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:32px">Belum ada data.</td></tr>';
+} else {
+  NOP_SUMMARY.forEach(row => {
+    const ag = agMap[row.nop] || {};
+    const tot = (row.total_open||0) + (row.total_needclose||0);
+    nopTbody.innerHTML += `<tr>
+      <td><strong>${row.nop}</strong></td>
+      <td><span class="pill open">${row.total_open||0}</span></td>
+      <td><span class="pill needclose">${row.total_needclose||0}</span></td>
+      <td><strong>${tot}</strong></td>
+      <td>${ag.bracket_0_3||0}</td>
+      <td style="color:var(--yellow)">${ag.bracket_4_7||0}</td>
+      <td style="color:var(--orange)">${ag.bracket_8_14||0}</td>
+      <td style="color:var(--red);font-weight:700">${ag.bracket_14_plus||0}</td>
+    </tr>`;
+  });
+}
+
+// ── Refresh chart colors on theme switch ──────────────────────────────────────
+function refreshCharts() {
+  const gc = css('grid'), mc = css('muted'), tc = css('surface'),
+        tipBg = css('tip-bg'), bc = css('border'), tx = css('text'), tx2 = css('text2');
+  Object.values(ALL_CHARTS).forEach(ch => {
+    if (!ch) return;
+    if (ch.options.plugins?.legend?.labels) ch.options.plugins.legend.labels.color = mc;
+    if (ch.options.plugins?.tooltip) Object.assign(ch.options.plugins.tooltip, {
+      backgroundColor: tipBg, borderColor: bc, titleColor: tx, bodyColor: tx2,
+    });
+    Object.values(ch.options.scales || {}).forEach(s => {
+      if (s.grid && s.grid.color !== undefined) s.grid.color = gc;
+      if (s.ticks) s.ticks.color = mc;
+    });
+    ch.data.datasets?.forEach(ds => {
+      if (typeof ds.borderColor === 'string' && (ds.borderColor.startsWith('#1a') || ds.borderColor.startsWith('#ff')))
+        ds.borderColor = tc;
+    });
+    ch.update('none');
+  });
+}
+</script>
+</body>
+</html>
